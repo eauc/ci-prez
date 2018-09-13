@@ -1,0 +1,137 @@
+
+
+#+BEGIN_SRC plantuml :file ./resources/build/ci_user.png
+actor User
+node Master {
+  storage "Kube api (https)" as Api
+  storage "Kube controller" as Controller
+}
+node "Node aka k8s.amaris.ovh" as Node {
+  database "Docker registry" as Registry
+  cloud Pods
+  storage Kubelet
+  storage Services
+  storage "Docker (node)" as DockerNode
+}
+
+User -> Api : $ kubectl
+Api ~~ Controller
+Controller -> Kubelet : supervise
+Kubelet -~> Pods : schedule
+Pods --> Registry : pull images
+Pods ~~ DockerNode : run
+
+User -> Services : GET http://k8s.amaris.ovh...
+Services ~> Pods : expose
+#+END_SRC
+
+#+RESULTS:
+[[file:./resources/build/ci_user.png]]
+
+
+#+BEGIN_SRC plantuml :file ./resources/build/archi_ci.png
+artifact App {
+  rectangle Dockerfile
+  rectangle deploy.yaml
+}
+node Master {
+  storage "Kube api (https)" as Api
+  storage "Kube controller" as Controller
+}
+node Node {
+  database "Docker registry" as Registry
+  cloud Pods
+  storage Kubelet
+  storage "Docker (node)" as DockerNode
+}
+node Gitlab {
+  storage Git
+}
+node GitlabRunner {
+  storage "Runner instance" as Runner
+  storage "Docker (runner)" as DockerRunner
+}
+
+App -> Git : push
+Git -> Runner : schedule
+Runner -> Api : configure / deploy.yaml
+Runner -> DockerRunner : build images / Dockerfile
+Runner -> Registry : push images
+
+Api ~ Controller
+Controller -> Kubelet : supervise
+Kubelet -> Pods : schedule
+Pods -> Registry : pull images
+Pods ~ DockerNode : run
+#+END_SRC
+
+#+RESULTS:
+[[file:./resources/build/archi_ci.png]]
+
+#+BEGIN_SRC plantuml :file ./resources/build/ci_build.png
+artifact App {
+  rectangle Dockerfile
+  rectangle deploy.yaml
+}
+node Gitlab {
+  storage Git
+}
+node GitlabRunner {
+  storage "Runner instance" as Runner
+  storage "Docker (runner)" as DockerRunner
+}
+
+App -> Git : push
+Git -> Runner : schedule
+Runner -> DockerRunner : build images / Dockerfile
+#+END_SRC
+
+#+RESULTS:
+[[file:./resources/build/ci_build.png]]
+
+#+BEGIN_SRC plantuml :file ./resources/build/ci_publish.png
+node Node {
+  database "Docker registry" as Registry
+}
+node GitlabRunner {
+  storage "Runner instance" as Runner
+}
+
+Runner -> Registry : push images
+#+END_SRC
+
+#+RESULTS:
+[[file:./resources/build/ci_publish.png]]
+
+#+BEGIN_SRC plantuml :file ./resources/build/ci_deploy.png
+artifact App {
+  rectangle Dockerfile
+  rectangle deploy.yaml
+}
+node GitlabRunner {
+  storage "Runner instance" as Runner
+}
+node Master {
+  storage "Kube api (https)" as Api
+  storage "Kube controller" as Controller
+}
+node Node {
+  database "Docker registry" as Registry
+  cloud Pods
+  storage Kubelet
+  storage "Docker (node)" as DockerNode
+}
+
+App .. Runner
+Runner -> Api : configure / deploy.yaml
+Runner ..> Registry : publish images
+
+Api ~~ Controller
+Controller -> Kubelet : supervise
+Kubelet -> Pods : schedule
+Pods -> Registry : pull images
+Pods ~ DockerNode : run
+#+END_SRC
+
+#+RESULTS:
+[[file:./resources/build/ci_deploy.png]]
